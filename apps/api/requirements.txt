@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+python-multipart
+requests
+beautifulsoup4
+lxml
+readability-lxml
+pydantic
+duckduckgo-search
