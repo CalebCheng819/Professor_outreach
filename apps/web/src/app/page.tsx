@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider
 import axios from "axios"
 import { ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { AddProfessorDialog } from "@/components/add-professor-dialog"
 import { API_URL } from "@/lib/config"
 
