@@ -23,7 +23,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://professor-outreach-tau.vercel.app",
-        "https://professor-outreach-tau.vercel.app/"
+        "https://professor-outreach-tau.vercel.app/",
+        "http://10.148.224.80:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -181,7 +182,12 @@ def generate_professor_card(professor_id: int, db: Session = Depends(get_db), cu
     return db_card
 
 @app.post("/professors/{professor_id}/generate-email", response_model=schemas.EmailDraft)
-def generate_email_draft(professor_id: int, template: str = "summer_intern", db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+def generate_email_draft(
+    professor_id: int, 
+    request: schemas.EmailGenerationRequest = None,
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_active_user)
+):
     # 1. Get professor
     db_professor = crud.get_professor(db, professor_id=professor_id, user_id=current_user.id)
     if not db_professor:
@@ -197,14 +203,18 @@ def generate_email_draft(professor_id: int, template: str = "summer_intern", db:
     if latest_card:
         card_data = json.loads(latest_card.card_json)
         
-    # 3. Generate
-    email_content = generator.generate_email(db_professor, card_data, template)
+    # 3. Generate (Pass the whole request object)
+    # If request is None (from old clients), create default
+    if request is None:
+        request = schemas.EmailGenerationRequest()
+
+    email_content = generator.generate_email(db_professor, card_data, request)
     
     # 4. Save
     db_draft = models.EmailDraft(
         professor_id=professor_id,
-        type=template,
-        tone="formal",
+        type=request.template,
+        tone=request.tone,
         content_short=email_content["subject"], 
         content_long=email_content["body"]
     )

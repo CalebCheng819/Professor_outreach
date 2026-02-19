@@ -70,20 +70,39 @@ Best,
     }
 }
 
-def generate_email(professor: Any, card_data: Dict[str, Any], template_type: str = "standard") -> Dict[str, str]:
-    # Determine the target role from the professor object, default to summer_intern
-    role = getattr(professor, "target_role", "summer_intern") or "summer_intern"
+def generate_email(professor: Any, card_data: Dict[str, Any], request: Any = None) -> Dict[str, str]:
+    """
+    Generates an email draft using LLM if available, otherwise falls back to templates.
+    """
+    from services.llm import LLMService
+
+    llm = LLMService()
     
-    # Map generic template requests to role-specific logic if needed
-    # For now, we simply use the role as the primary template key
-    # If the user requested a specific style (e.g. 'research_focus'), we could append it, e.g. f"{role}_{style}"
+    # Extract request parameters
+    template_type = "summer_intern"
+    tone = "formal"
+    length = "medium"
+    custom_instructions = ""
     
-    # Current simple logic: Always use the role-based template
-    target_template = role
-    
-    if target_template not in TEMPLATES:
-        target_template = "summer_intern"
-    
+    if request:
+        template_type = getattr(request, "template", template_type)
+        tone = getattr(request, "tone", tone)
+        length = getattr(request, "length", length)
+        custom_instructions = getattr(request, "custom_instructions", "")
+
+    # Role override if not specified in request but exists on professor
+    if not request or not getattr(request, "template", None):
+         template_type = getattr(professor, "target_role", "summer_intern") or "summer_intern"
+
+    # 1. Try LLM Generation
+    if llm.enabled:
+        try:
+            return _generate_with_llm(llm, professor, card_data, template_type, tone, length, custom_instructions)
+        except Exception as e:
+            print(f"[Email Generator] LLM failed, falling back to template: {e}")
+
+    # 2. Fallback to Static Templates
+    target_template = template_type if template_type in TEMPLATES else "summer_intern"
     template = TEMPLATES[target_template]
     
     # helper for names
@@ -107,3 +126,69 @@ def generate_email(professor: Any, card_data: Dict[str, Any], template_type: str
         "subject": template["subject"].format(**context),
         "body": template["body"].format(**context)
     }
+
+def _generate_with_llm(llm, professor, card_data, template_type, tone, length, custom_instructions):
+    import json
+    
+    # Prepare Context
+    parts = professor.name.split()
+    lastname = parts[-1] if parts else "Professor"
+    
+    summary = card_data.get("summary", "No summary available.")
+    interests = ", ".join(card_data.get("research_interests", []))
+    
+    # Build Prompt
+    system_prompt = f"""You are an expert academic assistant helping a student write an email to a professor.
+    Role: Student writing to Professor {lastname} at {professor.affiliation}.
+    Goal: Write a {tone} email for a {template_type.replace('_', ' ')} position.
+    Length: {length} (keep it concise but impactful).
+    
+    Professor's Research Context:
+    - Interests: {interests}
+    - Summary: {summary}
+    
+    {f'Custom Instructions: {custom_instructions}' if custom_instructions else ''}
+    
+    Output strictly valid JSON with keys: "subject" and "body"."""
+    
+    user_prompt = f"Draft the email to Professor {professor.name}."
+    
+    # Call LLM (using the internal _call_ollama method for direct prompt control or parse_search_results style)
+    # Since LLMService doesn't have a generic "chat" method exposed publicly yet, 
+    # we might need to use its internal _call_ollama or add a new method.
+    # For now, let's look at how `parse_search_results` calls `_call_ollama`.
+    # It uses `_call_ollama` which takes a single prompt string.
+    # We will construct a single prompt string that includes system instructions.
+    
+    # Remove the manual prompt concatenation since we now support system prompts
+    # full_prompt = f"{system_prompt}\n\nUser: {user_prompt}\n\nResponse (JSON):"
+    
+    # Debug Logs
+    print(f"[Email Generator] System Prompt:\n{system_prompt}")
+    print(f"[Email Generator] User Prompt:\n{user_prompt}")
+
+    # Call LLM with separate system prompt
+    try:
+        response_text = llm.chat(user_prompt, system_prompt=system_prompt)
+    except Exception as e:
+        print(f"[Email Generator] LLM Call Failed: {e}")
+        raise e
+
+    print(f"[Email Generator] Raw Response:\n{response_text}")
+    
+    # Parse JSON
+    try:
+        # Clean up code blocks if LLM adds them
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0]
+        elif "```" in response_text:
+             response_text = response_text.split("```")[1].split("```")[0]
+             
+        data = json.loads(response_text)
+        return {
+            "subject": data.get("subject", "Inquiry"),
+            "body": data.get("body", "Error generating body.")
+        }
+    except Exception as e:
+        print(f"[Email Generator] JSON Parse Failed: {e}. Text was: {response_text}")
+        raise ValueError(f"Failed to parse LLM JSON: {e}")

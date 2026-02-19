@@ -85,20 +85,30 @@ Extract professor info. Return a JSON object with key "results" containing an ar
 Each item: "name" (string), "affiliation" (string or null), "role" (string or null), "confidence" (0.0-1.0), "source_index" (int).
 If title is generic like "GitHub Pages", infer name from the query."""
 
-    def _call_ollama(self, prompt: str) -> str:
+    def chat(self, user_prompt: str, system_prompt: str = None) -> str:
+        """Generic chat completion."""
+        if not self.enabled:
+            return ""
+        return self._call_ollama(user_prompt, system_prompt)
+
+    def _call_ollama(self, prompt: str, system_prompt: str = None) -> str:
         print(f"[LLM] Calling Ollama ({self.ollama_model})...")
+        
+        default_system = "You extract professor info from search results. Output a JSON object with key 'results' containing an array of professor objects."
+        actual_system = system_prompt or default_system
+
         resp = http_requests.post(
             f"{self.ollama_url}/api/chat",
             json={
                 "model": self.ollama_model,
                 "messages": [
-                    {"role": "system", "content": "You extract professor info from search results. Output a JSON object with key 'results' containing an array of professor objects."},
+                    {"role": "system", "content": actual_system},
                     {"role": "user", "content": prompt}
                 ],
                 "stream": False,
                 "think": False,
                 "format": "json",
-                "options": {"temperature": 0.1, "num_predict": 512}
+                "options": {"temperature": 0.7 if system_prompt else 0.1, "num_predict": 1024} # Higher temp/tokens for creative tasks
             },
             timeout=120
         )

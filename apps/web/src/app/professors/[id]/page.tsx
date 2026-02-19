@@ -69,11 +69,30 @@ function ProfessorDetail() {
 
     // Email State & Mutation
     const [emailDraft, setEmailDraft] = useState<any>(null)
+    const [emailSettings, setEmailSettings] = useState({
+        template: "summer_intern",
+        tone: "formal",
+        length: "medium",
+        customInstructions: ""
+    })
+
+    // Update default template when professor data loads
+    const [templateInitialized, setTemplateInitialized] = useState(false)
+    if (professor?.target_role && !templateInitialized) {
+        setEmailSettings(s => ({ ...s, template: professor.target_role }))
+        setTemplateInitialized(true)
+    }
+
     const emailMutation = useMutation({
-        mutationFn: async (template: string) => {
+        mutationFn: async () => {
             const toastId = toast.loading("Drafting email...")
             try {
-                const res = await api.post(`/professors/${id}/generate-email?template=${template}`)
+                const res = await api.post(`/professors/${id}/generate-email`, {
+                    template: emailSettings.template,
+                    tone: emailSettings.tone,
+                    length: emailSettings.length,
+                    custom_instructions: emailSettings.customInstructions
+                })
                 toast.success("Draft created!", { id: toastId })
                 return res.data
             } catch (err: any) {
@@ -326,25 +345,71 @@ function ProfessorDetail() {
                                         <span className="font-medium text-slate-900"> {professor.target_role === 'phd' ? 'PhD Application' : 'Summer Internship'}</span>.
                                     </p>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mt-6">
-                                        <Button
-                                            variant="outline"
-                                            className="h-auto p-4 flex flex-col items-center gap-2 hover:border-blue-500 hover:bg-blue-50"
-                                            onClick={() => emailMutation.mutate("cold_email_v1")}
-                                            disabled={emailMutation.isPending}
-                                        >
-                                            <span className="font-semibold text-slate-900">Standard Inquiry</span>
-                                            <span className="text-xs text-slate-500">Professional and direct introduction.</span>
-                                        </Button>
+                                    <div className="space-y-6 max-w-2xl mx-auto mt-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Template</Label>
+                                                <Select
+                                                    value={emailSettings.template}
+                                                    onValueChange={(val) => setEmailSettings({ ...emailSettings, template: val })}
+                                                >
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="summer_intern">Summer Internship</SelectItem>
+                                                        <SelectItem value="phd">PhD Application</SelectItem>
+                                                        <SelectItem value="ra">Research Assistant</SelectItem>
+                                                        <SelectItem value="postdoc">Postdoc</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Tone</Label>
+                                                <Select
+                                                    value={emailSettings.tone}
+                                                    onValueChange={(val) => setEmailSettings({ ...emailSettings, tone: val })}
+                                                >
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="formal">Formal</SelectItem>
+                                                        <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+                                                        <SelectItem value="direct">Direct</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Length</Label>
+                                            <Select
+                                                value={emailSettings.length}
+                                                onValueChange={(val) => setEmailSettings({ ...emailSettings, length: val })}
+                                            >
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="short">Short</SelectItem>
+                                                    <SelectItem value="medium">Medium</SelectItem>
+                                                    <SelectItem value="long">Long</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Custom Instructions (Optional)</Label>
+                                            <textarea
+                                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="e.g. Mention that I read their paper on transformers..."
+                                                value={emailSettings.customInstructions}
+                                                onChange={(e) => setEmailSettings({ ...emailSettings, customInstructions: e.target.value })}
+                                            />
+                                        </div>
 
                                         <Button
-                                            variant="outline"
-                                            className="h-auto p-4 flex flex-col items-center gap-2 hover:border-blue-500 hover:bg-blue-50"
-                                            onClick={() => emailMutation.mutate("research_focus")}
+                                            className="w-full"
+                                            onClick={() => emailMutation.mutate()}
                                             disabled={emailMutation.isPending}
                                         >
-                                            <span className="font-semibold text-slate-900">Research Focus</span>
-                                            <span className="text-xs text-slate-500">Emphasizes specific paper matches.</span>
+                                            {emailMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                            Generate Email Draft
                                         </Button>
                                     </div>
 
@@ -374,8 +439,8 @@ function ProfessorDetail() {
                                 {professor.source_pages && professor.source_pages.length > 0 && (
                                     <div className="flex items-center gap-2 text-xs">
                                         <span className={`px-2 py-1 rounded-full font-medium border ${professor.source_pages[0].fetch_status === 'failed'
-                                                ? 'bg-red-50 text-red-700 border-red-200'
-                                                : 'bg-green-50 text-green-700 border-green-200'
+                                            ? 'bg-red-50 text-red-700 border-red-200'
+                                            : 'bg-green-50 text-green-700 border-green-200'
                                             }`}>
                                             {professor.source_pages[0].fetch_status === 'failed' ? 'Failed' : 'Success'}
                                         </span>

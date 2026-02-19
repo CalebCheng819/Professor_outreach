@@ -114,6 +114,12 @@ class EmailDraftBase(BaseModel):
 class EmailDraftCreate(EmailDraftBase):
     pass
 
+class EmailGenerationRequest(BaseModel):
+    template: str = "summer_intern"
+    tone: str = "formal"
+    length: str = "medium"
+    custom_instructions: Optional[str] = None
+
 class EmailDraft(EmailDraftBase):
     id: int
     professor_id: int
