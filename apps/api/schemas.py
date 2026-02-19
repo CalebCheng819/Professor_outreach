@@ -1,7 +1,28 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class UserBase(BaseModel):
+    email: str
+
+class UserCreate(UserBase):
+    password: str
+
+class User(UserBase):
+    id: int
+    is_active: bool
+    
+    class Config:
+        orm_mode = True
 class PipelineStatusBase(BaseModel):
     status: str = "Draft"
     last_touch_at: Optional[datetime] = None
@@ -21,8 +42,26 @@ class PipelineStatusUpdate(BaseModel):
 
 class SearchResult(BaseModel):
     title: str
+    name: Optional[str] = None
     link: str
     snippet: str
+    affiliation: Optional[str] = None
+
+class ParseRequest(BaseModel):
+    query: str
+    title: str
+    snippet: str
+    link: str
+
+class ParseResponse(BaseModel):
+    name: str
+    affiliation: Optional[str] = None
+    role: Optional[str] = None
+    confidence: float = 0.5
+
+class AvatarExtractionRequest(BaseModel):
+    website_url: str
+    name: str
 
 class PipelineStatus(PipelineStatusBase):
     id: int
@@ -56,6 +95,7 @@ class IngestRequest(BaseModel):
 class ProfessorCardBase(BaseModel):
     card_json: str
     card_md: Optional[str] = None
+    hiring_signals: Optional[str] = None # JSON string list
 
 class ProfessorCard(ProfessorCardBase):
     id: int
@@ -68,8 +108,8 @@ class ProfessorCard(ProfessorCardBase):
 
 class EmailDraftBase(BaseModel):
     type: str # summer_intern, phd
-    subject: str
-    body: str
+    subject: Optional[str] = None
+    body: Optional[str] = None
 
 class EmailDraftCreate(EmailDraftBase):
     pass
@@ -86,11 +126,22 @@ class ProfessorBase(BaseModel):
     name: str
     affiliation: str
     website_url: str
+    target_role: Optional[str] = "summer_intern"
+    avatar_url: Optional[str] = None
     scholar_url: Optional[str] = None
     email_guess: Optional[str] = None
 
 class ProfessorCreate(ProfessorBase):
     pass
+
+class ProfessorUpdate(ProfessorBase):
+    name: Optional[str] = None
+    affiliation: Optional[str] = None
+    website_url: Optional[str] = None
+    target_role: Optional[str] = None
+    avatar_url: Optional[str] = None
+    scholar_url: Optional[str] = None
+    email_guess: Optional[str] = None
 
 class Professor(ProfessorBase):
     id: int

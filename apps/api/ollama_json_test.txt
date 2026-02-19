@@ -1,0 +1,15 @@
+content (157 chars):
+{
+  "results": [
+    {
+      "name": "Chen Tang",
+      "affiliation": null,
+      "role": null,
+      "confidence": 0.9,
+      "source_index": 0
+    }
+  ]
+}
+
+done_reason: stop
+duration: 1.2s

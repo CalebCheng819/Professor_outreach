@@ -3,18 +3,32 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+
+    professors = relationship("Professor", back_populates="owner")
+
 class Professor(Base):
     __tablename__ = "professors"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Link to User
     name = Column(String, index=True)
     affiliation = Column(String)
     website_url = Column(String)
+    target_role = Column(String, default="summer_intern") # summer_intern, phd, postdoc, ra
+    avatar_url = Column(String, nullable=True)
     scholar_url = Column(String, nullable=True)
     email_guess = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    owner = relationship("User", back_populates="professors")
     pipeline_status = relationship("PipelineStatus", back_populates="professor", uselist=False)
     source_pages = relationship("SourcePage", back_populates="professor")
     professor_cards = relationship("ProfessorCard", back_populates="professor")
@@ -53,7 +67,9 @@ class ProfessorCard(Base):
     id = Column(Integer, primary_key=True, index=True)
     professor_id = Column(Integer, ForeignKey("professors.id"))
     card_json = Column(Text) # JSON string
+    card_json = Column(Text) # JSON string
     card_md = Column(Text)
+    hiring_signals = Column(Text, nullable=True) # JSON list of strings
     version = Column(Integer, default=1)
     generated_at = Column(DateTime, default=datetime.utcnow)
 
@@ -69,5 +85,13 @@ class EmailDraft(Base):
     content_short = Column(Text, nullable=True)
     content_long = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    @property
+    def subject(self):
+        return self.content_short
+
+    @property
+    def body(self):
+        return self.content_long
 
     professor = relationship("Professor", back_populates="email_drafts")

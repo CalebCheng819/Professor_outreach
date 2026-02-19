@@ -1,11 +1,11 @@
 fastapi
 uvicorn
 sqlalchemy
-alembic
-python-multipart
+pydantic
 requests
 beautifulsoup4
-lxml
-readability-lxml
-pydantic
-
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+python-dotenv
+cachetools
