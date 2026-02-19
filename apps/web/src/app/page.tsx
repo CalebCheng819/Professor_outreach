@@ -5,10 +5,8 @@ import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider
 import axios from "axios"
 import { ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { AddProfessorDialog } from "@/components/add-professor-dialog"
-
-const API_URL = "http://localhost:8000"
+import { API_URL } from "@/lib/config"
 
 // Create a client
 const queryClient = new QueryClient()

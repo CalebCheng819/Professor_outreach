@@ -17,8 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
-
-const API_URL = "http://localhost:8000"
+import { API_URL } from "@/lib/config"
 
 export function AddProfessorDialog() {
     const [open, setOpen] = useState(false)
@@ -110,7 +109,7 @@ export function AddProfessorDialog() {
             <DialogTrigger asChild>
                 <Button><Plus className="mr-2 h-4 w-4" /> Add Professor</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] bg-white">
                 <DialogHeader>
                     <DialogTitle>Add New Professor</DialogTitle>
                     <DialogDescription>

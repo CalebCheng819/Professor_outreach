@@ -1,13 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
+import time
 
-def search_professor(query: str, max_results: int = 5):
-    """
-    Searches for professors using DuckDuckGo HTML version.
-    This is more robust than using the API libraries which often get rate limited.
-    """
-    print(f"Searching for '{query}'...")
+def search_ddg_html(query, max_results=5):
+    print(f"Searching DDG HTML for '{query}'...")
     url = "https://html.duckduckgo.com/html/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -15,13 +11,14 @@ def search_professor(query: str, max_results: int = 5):
     }
     data = {"q": query}
     
-    results = []
     try:
         resp = requests.post(url, data=data, headers=headers, timeout=10)
         resp.raise_for_status()
         
         soup = BeautifulSoup(resp.text, "html.parser")
+        results = []
         
+        # DDG HTML results are usually in div.result
         for res in soup.find_all("div", class_="result"):
             if len(results) >= max_results:
                 break
@@ -31,28 +28,25 @@ def search_professor(query: str, max_results: int = 5):
                 continue
                 
             link = title_tag["href"]
-            # DDG links are sometimes redirected, but usually href is fine in HTML version
-            # Or sometimes it's /l/?kh=-1&uddg=...
-            if link.startswith("/l/?"):
-                # Try to extract real URL if possible, or just use it (it might redirect)
-                # Usually parsing 'uddg' param is needed.
-                qs = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
-                if 'uddg' in qs:
-                    link = qs['uddg'][0]
-
             title = title_tag.get_text(strip=True)
             snippet_tag = res.find("a", class_="result__snippet")
             snippet = snippet_tag.get_text(strip=True) if snippet_tag else ""
             
-            # Simple filtering to avoid ads or irrelevant stuff if needed
             results.append({
                 "title": title,
                 "link": link,
                 "snippet": snippet
             })
             
+        return results
+
     except Exception as e:
-        print(f"Search error: {e}")
+        print(f"Error: {e}")
         return []
 
-    return results
+if __name__ == "__main__":
+    res = search_ddg_html("Andrew Ng Stanford")
+    if not res:
+        print("No results found.")
+    for r in res:
+        print(f"- {r['title']} ({r['link']})")

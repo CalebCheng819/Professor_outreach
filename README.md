@@ -47,6 +47,24 @@ Frontend will run at `http://localhost:3000`.
 
 See [walkthrough.md](./walkthrough.md) for a step-by-step guide on how this project was built.
 
-## License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+## Deployment 🚀
+
+### 1. Backend (Render / Railway)
+The backend is a standard FastAPI app.
+1.  Create a new Web Service.
+2.  Connect your GitHub repo.
+3.  **Root Directory**: `apps/api`
+4.  **Build Command**: `pip install -r requirements.txt`
+5.  **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6.  *Copy the provided URL (e.g., `https://my-api.onrender.com`)*.
+
+### 2. Frontend (Vercel)
+The frontend is a Next.js app.
+1.  Import your GitHub repo to Vercel.
+2.  **Root Directory**: `apps/web`
+3.  **Environment Variables**:
+    *   `NEXT_PUBLIC_API_URL`: Paste your backend URL (e.g., `https://my-api.onrender.com`)
+    *   *Note: Do not add a trailing slash.*
+4.  Deploy!
+

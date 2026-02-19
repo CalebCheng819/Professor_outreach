@@ -11,8 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { toast } from "sonner"
-
-const API_URL = "http://localhost:8000"
+import { API_URL } from "@/lib/config"
 
 const queryClient = new QueryClient()
 
